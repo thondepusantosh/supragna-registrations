@@ -3,16 +3,16 @@
    SUPRAGNA '27 - REGISTRATION
 
    The scroll slides in and unrolls -> sign in unrolls the
-   rest -> details + event tickets -> REGISTERED stamp ->
+   rest -> details -> the Register ticket is cut along its
+   perforation, the stub tears away in a burst of confetti ->
    an Admit One ticket (canvas, downloadable as PNG).
 
-   Content lives in js/events-data.js. The two hooks to wire to
-   a real backend are signInWithGoogle() and
+   Fest details live in js/fest-data.js. The two hooks to wire
+   to a real backend are signInWithGoogle() and
    submitRegistration(), in the BACKEND HOOKS block below.
 ========================================================= */
 (() => {
-    const DATA = window.SUPRAGNA_DATA;
-    const FEST = DATA.fest;
+    const FEST = window.SUPRAGNA_DATA.fest;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const $ = (sel, root = document) => root.querySelector(sel);
@@ -21,47 +21,23 @@
     const esc = (value) => String(value).replace(/[&<>"']/g, (c) => ({
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
     }[c]));
+    const rand = (min, max) => min + Math.random() * (max - min);
 
     /* Web Animations call that collapses to an instant jump when
        the visitor prefers reduced motion */
     function play(el, frames, options) {
-        return el.animate(frames, { ...options, duration: reduceMotion ? 1 : options.duration });
+        return el.animate(frames, {
+            ...options,
+            duration: reduceMotion ? 1 : options.duration,
+            delay: reduceMotion ? 0 : options.delay || 0,
+        });
     }
 
-    /* =========================================================
-       TONES
-
-       Ticket colour per category. Hex rather than CSS variables
-       so the canvas ticket can use the same values.
-    ========================================================= */
-    const TONES = {
-        Dance: "#D8432E",
-        Music: "#3E7C8C",
-        Fashion: "#C98E22",
-        Theatre: "#9E2A1B",
-        Film: "#285663",
-    };
-    const toneOf = (ev) => TONES[ev.category] || "#D8432E";
-
-    const eventsById = new Map(DATA.events.map((ev) => [ev.id, ev]));
-
-    function teamLabel(ev) {
-        const { min, max } = ev.team;
-        if (max <= 1) return "Solo";
-        if (min === max) return `Team of ${max}`;
-        return `Team of ${min}–${max}`;
-    }
-
-    function serialOf(ev) {
-        return String(567420 + DATA.events.indexOf(ev) * 137);
-    }
+    const FIELDS = ["name", "email", "phone", "city", "college", "year", "gender"];
 
     const state = {
         stage: 0,          // 0 loading, 1 scroll open, 2 form open
-        selected: new Set(),
-        filter: "All",
-        focused: null,     // event id shown on the poster
-        dealt: false,
+        busy: false,
         registration: null,
     };
 
@@ -71,16 +47,15 @@
     const bottomRoll = $("#bottomRoll");
     const formZone = $("#formZone");
     const form = $("#regForm");
-    const tabs = $("#tabs");
-    const ticketList = $("#tickets");
-    const wanted = $("#wanted");
-    const wantedCard = $("#wantedCard");
-    const teamField = $("#teamField");
-    const pickedList = $("#picked");
-    const pickedEmpty = $("#pickedEmpty");
-    const pickCount = $("#pickCount");
     const submitBtn = $("#submitBtn");
     const submitLabel = $("#submitLabel");
+    const submitSub = $("#submitSub");
+    const regWrap = $("#regWrap");
+    const regMain = $("#regMain");
+    const regStub = $("#regStub");
+    const regCut = $("#regCut");
+    const scissors = $("#scissors");
+    const fxLayer = $("#fxLayer");
     const formStatus = $("#formStatus");
     const confirmEl = $("#confirm");
     const canvas = $("#ticketCanvas");
@@ -256,7 +231,6 @@
         const items = $$(".rv", formZone);
         if (!("IntersectionObserver" in window) || reduceMotion) {
             items.forEach((el) => el.classList.add("is-in"));
-            dealTickets();
             return;
         }
 
@@ -271,232 +245,6 @@
             });
         }, { rootMargin: "0px 0px -8% 0px" });
         items.forEach((el) => io.observe(el));
-
-        const dealer = new IntersectionObserver((entries) => {
-            if (entries.some((e) => e.isIntersecting)) {
-                dealTickets();
-                dealer.disconnect();
-            }
-        }, { rootMargin: "0px 0px -10% 0px" });
-        dealer.observe(ticketList);
-    }
-
-    /* =========================================================
-       TABS + TICKETS
-    ========================================================= */
-    function renderTabs() {
-        const cats = ["All", ...DATA.categories];
-        const tilts = [-2, 1.5, -1, 2, -1.5, 1];
-        tabs.innerHTML = cats.map((cat, i) =>
-            `<button type="button" class="booth-tab" data-cat="${esc(cat)}" aria-pressed="${cat === state.filter}" style="--r:${tilts[i % tilts.length]}deg">${esc(cat)}</button>`
-        ).join("");
-    }
-
-    function ticketHTML(ev, i) {
-        const tilt = [-1.1, .8, -.5, 1.2, -.9, .6][i % 6];
-        const full = Boolean(ev.seatsFull);
-        return `
-<li class="tk-item" data-cat="${esc(ev.category)}" data-id="${esc(ev.id)}">
-    <button type="button" class="eticket" data-id="${esc(ev.id)}" aria-pressed="false"${full ? ' aria-disabled="true"' : ""}
-        aria-label="${esc(`${ev.name}, ${ev.category}, ${teamLabel(ev)}${full ? ", seats full" : ""}`)}"
-        style="--tone:${toneOf(ev)};--tilt:${tilt}deg">
-        <span class="eticket__main">
-            <span class="eticket__top"><span>${esc(ev.category)}</span><span>${esc(teamLabel(ev))}</span></span>
-            <span class="eticket__name">${esc(ev.name)}</span>
-            <span class="eticket__admit">Admit One</span>
-            ${full
-                ? '<span class="stamp stamp--full">Seats Full</span>'
-                : '<span class="stamp stamp--ok">Admitted</span>'}
-        </span>
-        <span class="eticket__stub"><span class="eticket__serial">No. ${serialOf(ev)}</span></span>
-    </button>
-    <button type="button" class="eticket__more" data-more="${esc(ev.id)}">Rules</button>
-</li>`;
-    }
-
-    function renderTickets() {
-        ticketList.innerHTML = DATA.events.map(ticketHTML).join("");
-    }
-
-    function setFilter(cat) {
-        state.filter = cat;
-        $$(".booth-tab", tabs).forEach((tab) => tab.setAttribute("aria-pressed", String(tab.dataset.cat === cat)));
-        const shown = [];
-        $$(".tk-item", ticketList).forEach((li) => {
-            const on = cat === "All" || li.dataset.cat === cat;
-            li.hidden = !on;
-            if (on) shown.push(li);
-        });
-        dealTickets(shown, true);
-    }
-
-    /* tickets are dealt onto the paper, each from a slightly
-       different angle */
-    function dealTickets(items, force) {
-        if (state.dealt && !force) return;
-        state.dealt = true;
-        (items || $$(".tk-item:not([hidden])", ticketList)).forEach((li, i) => {
-            const dx = Math.round(Math.random() * 60 - 30);
-            const rot = (Math.random() * 16 - 8).toFixed(1);
-            play(li, [
-                { opacity: 0, transform: `translate(${dx}px, 46px) rotate(${rot}deg)` },
-                { opacity: 1, transform: "none" },
-            ], { duration: 560, delay: reduceMotion ? 0 : i * 60, easing: "cubic-bezier(.34,1.4,.64,1)", fill: "backwards" });
-        });
-    }
-
-    function toggleEvent(id) {
-        const ev = eventsById.get(id);
-        const li = $(`.tk-item[data-id="${id}"]`);
-        const btn = $(".eticket", li);
-
-        if (ev.seatsFull) {
-            play(li, [
-                { transform: "translateX(0)" }, { transform: "translateX(-7px)" },
-                { transform: "translateX(7px)" }, { transform: "translateX(-4px)" },
-                { transform: "translateX(0)" },
-            ], { duration: 420, easing: "ease-in-out" });
-            showPoster(ev);
-            formStatus.textContent = `${ev.name} is full. Pick another act.`;
-            return;
-        }
-
-        const on = !state.selected.has(id);
-        if (on) state.selected.add(id);
-        else state.selected.delete(id);
-        btn.setAttribute("aria-pressed", String(on));
-
-        if (on) {
-            /* the thump of the rubber stamp */
-            play(li, [
-                { transform: "scale(1)" },
-                { transform: "scale(.965) translateY(2px)", offset: .3 },
-                { transform: "scale(1)" },
-            ], { duration: 380, delay: 120, easing: "ease-out" });
-            showPoster(ev);
-        }
-
-        formStatus.textContent = "";
-        updatePicked();
-        updateTeamField();
-        refreshPosterPick();
-    }
-
-    function updatePicked() {
-        const picked = DATA.events.filter((ev) => state.selected.has(ev.id));
-        pickedList.innerHTML = picked.map((ev) =>
-            `<li class="picked__chip" style="--tone:${toneOf(ev)}"><span>${esc(ev.name)}</span><button type="button" class="picked__x" data-unpick="${esc(ev.id)}" aria-label="Remove ${esc(ev.name)}">&times;</button></li>`
-        ).join("");
-        pickedEmpty.hidden = picked.length > 0;
-
-        pickCount.textContent = String(picked.length);
-        $("#pickWord").textContent = picked.length === 1 ? "ticket" : "tickets";
-        pickCount.classList.remove("is-bump");
-        void pickCount.offsetWidth;
-        pickCount.classList.add("is-bump");
-
-        if (picked.length) setError("events", "");
-    }
-
-    function needsTeam() {
-        return [...state.selected].some((id) => eventsById.get(id).team.max > 1);
-    }
-
-    function updateTeamField() {
-        const needed = needsTeam();
-        if (needed === !teamField.hidden) return;
-        teamField.hidden = !needed;
-        if (needed) {
-            play(teamField, [
-                { opacity: 0, transform: "translateY(-12px) rotate(-1deg)" },
-                { opacity: 1, transform: "none" },
-            ], { duration: 420, easing: "cubic-bezier(.22,1,.36,1)" });
-        } else {
-            setError("team", "");
-        }
-    }
-
-    /* =========================================================
-       POSTER: "Grand Opening" until a ticket is picked, then a
-       "Wanted" bill for that event. It swings over on its nails.
-    ========================================================= */
-    function grandHTML() {
-        return `
-<p class="wanted__kicker">&#9733; Now Showing &#9733;</p>
-<h3 class="wanted__head wanted__head--grand">Grand Opening</h3>
-<p class="wanted__sub">${esc(FEST.name)} ${esc(FEST.edition)} &middot; ${esc(FEST.tagline)}</p>
-<dl class="wanted__facts">
-    <div><dt>Dates</dt><dd>${esc(FEST.dates)}</dd></div>
-    <div><dt>Venue</dt><dd>${esc(FEST.venue)}</dd></div>
-    <div><dt>Acts</dt><dd>${DATA.events.length}</dd></div>
-</dl>
-<p class="wanted__hint">Tap a ticket to pin its poster here: date, venue, prize pool and the rules.</p>`;
-    }
-
-    function wantedHTML(ev) {
-        const picked = state.selected.has(ev.id);
-        const action = ev.seatsFull
-            ? '<span class="stamp stamp--full">Seats Full</span>'
-            : `<button type="button" class="wanted__pick" data-pick="${esc(ev.id)}" aria-pressed="${picked}">${picked ? "&#10003; Ticket in hand" : "Grab this ticket"}</button>`;
-        return `
-<p class="wanted__kicker">&#9733; ${esc(FEST.name)} ${esc(FEST.edition)} &#9733;</p>
-<h3 class="wanted__head">Wanted</h3>
-<p class="wanted__sub">Daring performers for</p>
-<p class="wanted__event">${esc(ev.name)}</p>
-<p class="wanted__meta">${esc(ev.category)} &middot; ${esc(teamLabel(ev))}</p>
-<dl class="wanted__facts">
-    <div><dt>Date</dt><dd>${esc(ev.date)}</dd></div>
-    <div><dt>Venue</dt><dd>${esc(ev.venue)}</dd></div>
-    <div><dt>Prize pool</dt><dd>${esc(ev.prize)}</dd></div>
-</dl>
-<h4 class="wanted__rules-title">The Rules</h4>
-<ol class="wanted__rules">${ev.rules.map((r) => `<li>${esc(r)}</li>`).join("")}</ol>
-${action}`;
-    }
-
-    function posterHTML() {
-        return state.focused ? wantedHTML(eventsById.get(state.focused)) : grandHTML();
-    }
-
-    let flipping = false;
-    function showPoster(ev) {
-        const id = ev ? ev.id : null;
-        if (id === state.focused) return;
-        state.focused = id;
-
-        if (reduceMotion) {
-            wantedCard.innerHTML = posterHTML();
-            return;
-        }
-        if (flipping) return;   // the running flip renders the latest event
-        flipping = true;
-
-        const out = wantedCard.animate([
-            { transform: "perspective(900px) rotateX(0deg)" },
-            { transform: "perspective(900px) rotateX(-90deg)" },
-        ], { duration: 200, easing: "ease-in", fill: "forwards" });
-
-        out.finished.then(() => {
-            wantedCard.innerHTML = posterHTML();
-            out.cancel();
-            const back = wantedCard.animate([
-                { transform: "perspective(900px) rotateX(90deg)" },
-                { transform: "perspective(900px) rotateX(-12deg)", offset: .65 },
-                { transform: "perspective(900px) rotateX(5deg)", offset: .85 },
-                { transform: "perspective(900px) rotateX(0deg)" },
-            ], { duration: 560, easing: "ease-out" });
-            return back.finished;
-        }).finally(() => {
-            flipping = false;
-        });
-    }
-
-    function refreshPosterPick() {
-        const pick = $(".wanted__pick", wantedCard);
-        if (!pick) return;
-        const on = state.selected.has(pick.dataset.pick);
-        pick.setAttribute("aria-pressed", String(on));
-        pick.innerHTML = on ? "&#10003; Ticket in hand" : "Grab this ticket";
     }
 
     /* =========================================================
@@ -528,8 +276,6 @@ ${action}`;
             college: get("college"),
             year: get("year"),
             gender: get("gender"),
-            team: needsTeam() ? get("team") : "",
-            events: DATA.events.filter((ev) => state.selected.has(ev.id)).map((ev) => ev.id),
         };
     }
 
@@ -542,34 +288,35 @@ ${action}`;
         if (!data.college) errors.college = "Add your college name.";
         if (!data.year) errors.year = "Pick your year of study.";
         if (!data.gender) errors.gender = "Pick one.";
-        if (!data.events.length) errors.events = "Pick at least one ticket in Act II.";
-        if (needsTeam() && !data.team) errors.team = "Team events need a team name.";
 
-        ["name", "email", "phone", "city", "college", "year", "gender", "events", "team"]
-            .forEach((key) => setError(key, errors[key] || ""));
+        FIELDS.forEach((key) => setError(key, errors[key] || ""));
 
         const first = Object.keys(errors)[0];
-        if (first) {
-            const target = first === "events" ? $("#act2") : $(`[data-field="${first}"]`);
-            target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
-            const shake = first === "events" ? $("#seal") : target;
-            shake.classList.remove("is-shaking");
-            void shake.offsetWidth;
-            shake.classList.add("is-shaking");
-            const input = first === "events" ? null : $("input, select", target);
-            if (input) setTimeout(() => input.focus({ preventScroll: true }), reduceMotion ? 0 : 450);
-            formStatus.textContent = "A few details are missing. They're marked in red.";
-            return false;
-        }
-        return true;
+        if (!first) return true;
+
+        const target = $(`[data-field="${first}"]`);
+        target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+        target.classList.remove("is-shaking");
+        void target.offsetWidth;
+        target.classList.add("is-shaking");
+        const input = $("input, select", target);
+        if (input) setTimeout(() => input.focus({ preventScroll: true }), reduceMotion ? 0 : 450);
+
+        /* the ticket refuses to tear */
+        play(regWrap, [
+            { translate: "0 0" }, { translate: "-8px 0" }, { translate: "8px 0" },
+            { translate: "-5px 0" }, { translate: "0 0" },
+        ], { duration: 420, easing: "ease-in-out" });
+        formStatus.textContent = "A few details are missing. They're marked in red.";
+        return false;
     }
 
     /* =========================================================
-       SUBMIT -> stamp -> ticket
+       SUBMIT -> cut -> ticket
     ========================================================= */
     async function onSubmit(e) {
         e.preventDefault();
-        if (submitBtn.disabled) return;
+        if (state.busy) return;
         if (state.registration) {
             openTicket();
             return;
@@ -578,18 +325,18 @@ ${action}`;
         const data = collect();
         if (!validate(data)) return;
 
+        state.busy = true;
         submitBtn.disabled = true;
-        submitBtn.classList.add("is-busy");
-        submitLabel.textContent = "Printing your ticket…";
+        submitSub.textContent = "Checking you in…";
         formStatus.textContent = "";
 
         let result;
         try {
             result = await submitRegistration(data);
         } catch (err) {
+            state.busy = false;
             submitBtn.disabled = false;
-            submitBtn.classList.remove("is-busy");
-            submitLabel.textContent = "Step Right Up · Register";
+            submitSub.textContent = "Tear here to take your seat";
             formStatus.textContent = "The box office couldn't take that. Try again in a moment.";
             return;
         }
@@ -598,46 +345,143 @@ ${action}`;
             ...data,
             regId: result.regId,
             serial: String(100000 + parseInt(result.regId.replace(/\W/g, ""), 36) % 900000),
-            eventNames: DATA.events.filter((ev) => data.events.includes(ev.id)).map((ev) => ev.name),
         };
 
-        await slamStamp("Registered");
+        submitSub.textContent = "Snip…";
+        await cutTicket();
 
-        const seal = document.createElement("span");
-        seal.className = "seal-stamp";
-        seal.setAttribute("aria-hidden", "true");
-        seal.textContent = "Registered";
-        $("#seal").append(seal);
-
-        submitBtn.disabled = false;
-        submitBtn.classList.remove("is-busy");
         submitLabel.textContent = "View my ticket";
-        formStatus.textContent = `Registered. Your number is ${result.regId}.`;
+        submitSub.textContent = `Registered · ${result.regId}`;
+        formStatus.textContent = `You're registered. Your number is ${result.regId}.`;
+        submitBtn.disabled = false;
+        state.busy = false;
 
+        await wait(500);
         openTicket();
     }
 
-    async function slamStamp(text) {
-        const layer = $("#stampLayer");
-        const stamp = document.createElement("div");
-        stamp.className = "big-stamp";
-        stamp.textContent = text;
-        layer.append(stamp);
+    /* =========================================================
+       THE CUT
 
-        play(stamp, [
-            { opacity: 0, transform: "rotate(-30deg) scale(3.2)" },
-            { opacity: 1, transform: "rotate(-10deg) scale(.92)", offset: .6 },
-            { opacity: 1, transform: "rotate(-12deg) scale(1)" },
-        ], { duration: 480, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards" });
+       1. Scissors snip their way down the perforation, leaving
+          a slit behind them.
+       2. The stub tears free: a copy of it is lifted into the
+          fixed effects layer and tumbles off the screen, while
+          the ticket keeps a ragged edge where it was torn.
+       3. Confetti, gold sparkles and a flash burst from the
+          cut, and the ticket is stamped REGISTERED.
+    ========================================================= */
+    async function cutTicket() {
+        const h = submitBtn.getBoundingClientRect().height;
+        const travel = 950;
+        const lead = 180;
 
-        await wait(300);
+        submitBtn.classList.add("is-cutting");
+        play(scissors, [
+            { opacity: 0, transform: "translateY(-96px) rotate(-10deg)" },
+            { opacity: 1, transform: "translateY(-64px) rotate(0deg)", offset: lead / (lead + travel + 200) },
+            { opacity: 1, transform: `translateY(${h - 64}px) rotate(0deg)`, offset: (lead + travel) / (lead + travel + 200) },
+            { opacity: 0, transform: `translateY(${h - 30}px) rotate(8deg)` },
+        ], { duration: lead + travel + 200, easing: "linear", fill: "forwards" });
+        play(regCut, [{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], {
+            duration: travel, delay: lead, easing: "linear", fill: "forwards",
+        });
+
+        await wait(lead + travel);
+        submitBtn.classList.remove("is-cutting");
+        tearStub();
+        await wait(1100);
+    }
+
+    function tearStub() {
+        const rect = regStub.getBoundingClientRect();
+        const loose = regStub.cloneNode(true);
+        loose.removeAttribute("id");
+        loose.classList.add("fx-stub");
+        loose.style.cssText = `left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;--n:16px`;
+        fxLayer.append(loose);
+
+        raggedEdge(regMain);
+        submitBtn.classList.add("is-cut");
+
+        play(loose, [
+            { transform: "rotate(-1.2deg)", opacity: 1 },
+            { transform: "translate(22px, -18px) rotate(12deg)", opacity: 1, offset: .18 },
+            { transform: `translate(${rand(40, 120)}px, ${window.innerHeight * 0.85}px) rotate(${rand(60, 110)}deg)`, opacity: 0 },
+        ], { duration: 1600, easing: "cubic-bezier(.45,0,.8,.6)", fill: "forwards" })
+            .finished.then(() => loose.remove());
+
         scrollEl.classList.remove("is-thud");
         void scrollEl.offsetWidth;
         scrollEl.classList.add("is-thud");
 
-        await wait(1000);
-        await play(stamp, [{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" }).finished;
-        stamp.remove();
+        burst(rect.left, rect.top + rect.height / 2);
+    }
+
+    /* where the stub came away, the ticket keeps a torn edge */
+    function raggedEdge(el) {
+        const steps = 16;
+        const pts = ["0 0", "calc(100% - 4px) 0"];
+        for (let i = 1; i < steps; i++) {
+            pts.push(`calc(100% - ${rand(0, 8).toFixed(1)}px) ${((i / steps) * 100).toFixed(2)}%`);
+        }
+        pts.push("calc(100% - 3px) 100%", "0 100%");
+        el.style.clipPath = `polygon(${pts.join(",")})`;
+    }
+
+    function burst(x, y) {
+        if (reduceMotion) return;
+        const colors = ["#C8202E", "#E0A93B", "#F3E3BF", "#2B3F8F", "#3E7C8C", "#FFD77E"];
+        const shapes = ["", "confetti--dot", "confetti--strip"];
+        const frag = document.createDocumentFragment();
+        const pieces = [];
+
+        const flash = document.createElement("div");
+        flash.className = "fx-flash";
+        flash.style.cssText = `left:${x}px;top:${y}px`;
+        frag.append(flash);
+        pieces.push([flash, [
+            { transform: "scale(.2)", opacity: 1 },
+            { transform: "scale(2.4)", opacity: 0 },
+        ], { duration: 650, easing: "ease-out" }]);
+
+        for (let k = 0; k < 56; k++) {
+            const bit = document.createElement("div");
+            bit.className = `confetti ${shapes[k % shapes.length]}`;
+            bit.style.cssText = `left:${x}px;top:${y + rand(-50, 50)}px;background:${colors[k % colors.length]}`;
+            frag.append(bit);
+
+            const angle = rand(-170, -10) * (Math.PI / 180);
+            const speed = rand(140, 360);
+            const dx = Math.cos(angle) * speed;
+            const dy = Math.sin(angle) * speed;
+            const fall = rand(260, 480);
+            const spin = rand(-720, 720);
+            pieces.push([bit, [
+                { transform: "translate(0, 0) rotate(0deg) scale(.6)", opacity: 1 },
+                { transform: `translate(${dx * 0.65}px, ${dy * 0.65}px) rotate(${spin * 0.4}deg) scale(1)`, opacity: 1, offset: .3 },
+                { transform: `translate(${dx}px, ${dy + fall * 0.45}px) rotate(${spin * 0.75}deg) scale(1)`, opacity: 1, offset: .7 },
+                { transform: `translate(${dx * 1.15}px, ${dy + fall}px) rotate(${spin}deg) scale(.9)`, opacity: 0 },
+            ], { duration: rand(1300, 2100), easing: "cubic-bezier(.2,.6,.4,1)" }]);
+        }
+
+        for (let k = 0; k < 9; k++) {
+            const spark = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            spark.setAttribute("class", "fx-spark");
+            spark.innerHTML = '<use href="#spark"/>';
+            spark.style.cssText = `left:${x + rand(-90, 90)}px;top:${y + rand(-80, 80)}px`;
+            frag.append(spark);
+            pieces.push([spark, [
+                { transform: "scale(0) rotate(0deg)", opacity: 0 },
+                { transform: "scale(1.2) rotate(60deg)", opacity: 1, offset: .45 },
+                { transform: "scale(0) rotate(120deg)", opacity: 0 },
+            ], { duration: rand(700, 1100), delay: rand(0, 450), easing: "ease-out", fill: "backwards" }]);
+        }
+
+        fxLayer.append(frag);
+        pieces.forEach(([el, frames, opts]) => {
+            play(el, frames, opts).finished.then(() => el.remove());
+        });
     }
 
     /* =========================================================
@@ -692,20 +536,23 @@ ${action}`;
         }, "image/png");
     }
 
+    /* a fresh, uncut ticket for the next person */
     function registerAnother() {
         closeTicket();
         state.registration = null;
-        state.selected.clear();
         form.reset();
-        $$(".eticket[aria-pressed='true']", ticketList).forEach((btn) => btn.setAttribute("aria-pressed", "false"));
-        $$(".seal-stamp").forEach((el) => el.remove());
-        ["name", "email", "phone", "city", "college", "year", "gender", "events", "team"].forEach((k) => setError(k, ""));
-        updatePicked();
-        updateTeamField();
-        state.focused = "__reset";
-        showPoster(null);
-        submitLabel.textContent = "Step Right Up · Register";
+        FIELDS.forEach((k) => setError(k, ""));
+        submitBtn.classList.remove("is-cut");
+        regMain.style.clipPath = "";
+        scissors.getAnimations().forEach((a) => a.cancel());
+        regCut.getAnimations().forEach((a) => a.cancel());
+        submitLabel.textContent = "Register";
+        submitSub.textContent = "Tear here to take your seat";
         formStatus.textContent = "";
+        play(regWrap, [
+            { opacity: 0, transform: "translateY(24px) rotate(-4deg)" },
+            { opacity: 1, transform: "rotate(-1.2deg)" },
+        ], { duration: 500, easing: "cubic-bezier(.34,1.4,.64,1)" });
         $("#act1").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
         setTimeout(() => $("#f-name").focus({ preventScroll: true }), reduceMotion ? 0 : 600);
     }
@@ -715,8 +562,8 @@ ${action}`;
 
        Drawn rather than screenshotted so the download matches
        exactly what is on screen. 1400 x 600, transparent
-       notches. The QR holds the registration number and event
-       ids only (ASCII, so any QR reader handles it).
+       notches. The QR holds the registration number only
+       (ASCII, so any QR reader handles it).
     ========================================================= */
     const T = { W: 1400, H: 600, STUB: 1060 };
     let grainPattern = null;
@@ -937,16 +784,16 @@ ${action}`;
         const name = fitText(ctx, reg.name, 480, 36, 22, "600 {s}px 'Playfair Display'");
         ctx.fillText(name, X, 332);
 
-        const teamX = X + 520;
-        label(reg.team ? "TEAM" : "ENTRY", teamX, 290);
+        const yearX = X + 520;
+        label("YEAR", yearX, 290);
         ctx.fillStyle = "#2A1A10";
-        const team = fitText(ctx, reg.team || "Solo performer", STUB - 60 - teamX, 36, 22, "600 {s}px 'Playfair Display'");
-        ctx.fillText(team, teamX, 332);
+        const year = fitText(ctx, reg.year, STUB - 60 - yearX, 36, 22, "600 {s}px 'Playfair Display'");
+        ctx.fillText(year, yearX, 332);
 
-        label(reg.eventNames.length > 1 ? "EVENTS" : "EVENT", X, 380);
+        label("COLLEGE", X, 380);
         ctx.font = "600 28px 'Playfair Display'";
         ctx.fillStyle = "#2A1A10";
-        wrapLines(ctx, reg.eventNames.join("  ·  "), maxW, 2)
+        wrapLines(ctx, reg.college, maxW, 2)
             .forEach((line, i) => ctx.fillText(line, X, 418 + i * 36));
 
         ctx.font = "19px 'Special Elite'";
@@ -1005,7 +852,7 @@ ${action}`;
         ctx.fillStyle = "#F4E6C8";
         roundRect(ctx, qrX - 14, qrY - 14, qrSize + 28, qrSize + 28, 10);
         ctx.fill();
-        drawQR(ctx, `SUPRAGNA27|${reg.regId}|${reg.events.join(",")}`, qrX, qrY, qrSize);
+        drawQR(ctx, `SUPRAGNA27|${reg.regId}`, qrX, qrY, qrSize);
 
         ctx.textAlign = "center";
         ctx.fillStyle = "#F1E3C6";
@@ -1085,43 +932,11 @@ ${action}`;
     hangBunting();
     $$("[data-tear]").forEach(tearEdges);
     splitTitle();
-    renderTabs();
-    renderTickets();
-    wantedCard.innerHTML = grandHTML();
-    updatePicked();
     parallax();
 
     openScroll();
     $("#googleBtn").addEventListener("click", () => openBoxOffice(true));
     $("#manualBtn").addEventListener("click", () => openBoxOffice(false));
-
-    tabs.addEventListener("click", (e) => {
-        const tab = e.target.closest(".booth-tab");
-        if (tab && tab.dataset.cat !== state.filter) setFilter(tab.dataset.cat);
-    });
-
-    ticketList.addEventListener("click", (e) => {
-        const more = e.target.closest("[data-more]");
-        if (more) {
-            showPoster(eventsById.get(more.dataset.more));
-            if (window.matchMedia("(max-width: 860px)").matches) {
-                wanted.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
-            }
-            return;
-        }
-        const ticket = e.target.closest(".eticket");
-        if (ticket) toggleEvent(ticket.dataset.id);
-    });
-
-    wantedCard.addEventListener("click", (e) => {
-        const pick = e.target.closest("[data-pick]");
-        if (pick) toggleEvent(pick.dataset.pick);
-    });
-
-    pickedList.addEventListener("click", (e) => {
-        const x = e.target.closest("[data-unpick]");
-        if (x) toggleEvent(x.dataset.unpick);
-    });
 
     /* clear a field's error as soon as it is fixed */
     form.addEventListener("input", (e) => {

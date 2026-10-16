@@ -177,47 +177,46 @@
                                 </div>
                             </section>
 
-                            <!-- ACT II -->
+                            <!-- ACT II: one big ticket to register -->
                             <section class="act" aria-labelledby="act2">
-                                <div class="tear-wrap rv"><h2 class="tear tear--red" id="act2" data-tear><small>Act II</small>Pick Your Acts</h2></div>
+                                <div class="tear-wrap rv"><h2 class="tear tear--red" id="act2" data-tear><small>Act II</small>Take Your Seat</h2></div>
 
-                                <div class="booth rv">
-                                    <div class="booth-tabs" id="tabs" role="group" aria-label="Show events by category"></div>
-                                    <p class="booth__count"><b id="pickCount">0</b> <span id="pickWord">tickets</span> in hand</p>
-                                </div>
-
-                                <div class="acts" id="acts">
-                                    <ul class="tickets" id="tickets"></ul>
-                                    <aside class="wanted" id="wanted" aria-live="polite">
-                                        <div class="wanted__card" id="wantedCard"></div>
-                                    </aside>
-                                </div>
-
-                                <div class="field team-field" id="teamField" data-field="team" hidden>
-                                    <label class="field__label" for="f-team">Troupe / team name</label>
-                                    <div class="field__control">
-                                        <input class="field__input" id="f-team" name="team" autocomplete="off" placeholder="The name your whole team will use" aria-describedby="e-team h-team">
-                                        <i class="field__line"></i>
-                                    </div>
-                                    <p class="field__hint" id="h-team">Every team member registers separately with the same team name.</p>
-                                    <p class="field__error" id="e-team"></p>
-                                </div>
-                            </section>
-
-                            <!-- ACT III -->
-                            <section class="act" aria-labelledby="act3">
-                                <div class="tear-wrap rv"><h2 class="tear tear--mustard" id="act3" data-tear><small>Act III</small>Seal the Deal</h2></div>
-
-                                <div class="seal rv" id="seal">
-                                    <h3 class="seal__title">Your acts</h3>
-                                    <ul class="picked" id="picked"></ul>
-                                    <p class="picked__empty" id="pickedEmpty">No acts picked yet. Choose at least one ticket above.</p>
-                                    <p class="field__error field__error--center" id="e-events"></p>
-
-                                    <div class="ticket-btn-wrap ticket-btn-wrap--big">
-                                        <button class="ticket-btn ticket-btn--big" type="submit" id="submitBtn">
-                                            <span class="ticket-btn__bulbs" aria-hidden="true"></span>
-                                            <span class="ticket-btn__label" id="submitLabel">Step Right Up &middot; Register</span>
+                                <div class="register rv">
+                                    <p class="register__hint">Check your details, then tear off your ticket.</p>
+                                    <div class="reg-ticket-wrap" id="regWrap">
+                                        <button class="reg-ticket" type="submit" id="submitBtn">
+                                            <span class="reg-ticket__main" id="regMain">
+                                                <span class="reg-ticket__bulbs" aria-hidden="true"></span>
+                                                <span class="reg-ticket__top">Supragna '27 &middot; Admit One</span>
+                                                <span class="reg-ticket__label" id="submitLabel">Register</span>
+                                                <span class="reg-ticket__sub" id="submitSub">Tear here to take your seat</span>
+                                                <span class="stamp" aria-hidden="true">Registered</span>
+                                            </span>
+                                            <span class="reg-ticket__stub" id="regStub" aria-hidden="true">
+                                                <span class="reg-ticket__admit">Admit One</span>
+                                                <span class="reg-ticket__serial">No. 567427</span>
+                                            </span>
+                                            <span class="reg-ticket__cut" id="regCut" aria-hidden="true"></span>
+                                            <svg class="scissors" id="scissors" viewBox="0 0 40 60" aria-hidden="true" focusable="false">
+                                                <defs>
+                                                    <linearGradient id="blade" x1="0" x2="1">
+                                                        <stop offset="0" stop-color="#F6F6F4"/>
+                                                        <stop offset=".5" stop-color="#BCC1C8"/>
+                                                        <stop offset="1" stop-color="#7D838C"/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <g class="scissors__half scissors__half--l">
+                                                    <circle cx="11" cy="10" r="7" fill="none" stroke="#C8202E" stroke-width="3.6"/>
+                                                    <path d="M14.5 15.5L20 29" stroke="#C8202E" stroke-width="4" stroke-linecap="round"/>
+                                                    <path d="M18.6 27.5L22 29.6 22.6 58z" fill="url(#blade)" stroke="#5C6168" stroke-width=".6"/>
+                                                </g>
+                                                <g class="scissors__half scissors__half--r">
+                                                    <circle cx="29" cy="10" r="7" fill="none" stroke="#C8202E" stroke-width="3.6"/>
+                                                    <path d="M25.5 15.5L20 29" stroke="#C8202E" stroke-width="4" stroke-linecap="round"/>
+                                                    <path d="M21.4 27.5L18 29.6 17.4 58z" fill="url(#blade)" stroke="#5C6168" stroke-width=".6"/>
+                                                </g>
+                                                <circle cx="20" cy="30" r="2.4" fill="#E0A93B" stroke="#7A5216" stroke-width=".6"/>
+                                            </svg>
                                         </button>
                                     </div>
                                     <p class="form-status" id="formStatus" role="status"></p>
@@ -233,8 +232,8 @@
         </div>
     </main>
 
-    <!-- REGISTERED stamp that slams onto the screen -->
-    <div class="stamp-layer" id="stampLayer" aria-hidden="true"></div>
+    <!-- the torn-off stub, confetti and sparkles fly in this layer -->
+    <div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
 
     <!-- ===================== CONFIRMATION ===================== -->
     <div class="confirm" id="confirm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" hidden>
@@ -268,7 +267,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
     <script src="js/backdrop.js" defer></script>
-    <script src="js/events-data.js" defer></script>
+    <script src="js/fest-data.js" defer></script>
     <script src="js/register.js" defer></script>
 </body>
 </html>
