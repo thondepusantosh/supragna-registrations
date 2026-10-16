@@ -1,0 +1,1848 @@
+/* =========================================================
+   SUPRAGNA '27 - REGISTRATION
+   Circus box office: night-carnival sky,
+   parchment scroll, Admit One tickets, rubber stamps and
+   torn-paper dividers. No images: paper grain comes from
+   SVG feTurbulence data URIs.
+========================================================= */
+
+:root {
+    --brick: #D8432E;
+    --brick-deep: #9E2A1B;
+    --teal: #3E7C8C;
+    --teal-deep: #285663;
+    --cream: #F1E3C6;
+    --cream-hi: #F8EED8;
+    --mustard: #E0A93B;
+    --mustard-deep: #B9821C;
+    --ink: #2A1A10;
+    --ink-soft: #5B4130;
+
+    --f-head: "Rye", Georgia, serif;
+    --f-title: "Abril Fatface", Georgia, serif;
+    --f-type: "Special Elite", "Courier New", monospace;
+    --f-body: "Playfair Display", Georgia, serif;
+
+    --ease-out: cubic-bezier(.22, 1, .36, 1);
+    --ease-back: cubic-bezier(.34, 1.56, .64, 1);
+    --ease-io: cubic-bezier(.65, 0, .35, 1);
+
+    /* fine paper grain and big soft stains */
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .2 0 0 0 0 .08 0 0 0 .7 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+    --blotch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .28 0 0 0 0 .1 0 0 0 1.3 -.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+    /* jagged left / right paper edges for the scroll mask */
+    --edge-l: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='160'%3E%3Cpath d='M16 0H6L9 7 4 14 8 22 3 30 7 37 5 45 10 52 4 60 7 69 2 77 8 85 5 93 9 101 3 109 6 118 4 126 9 134 5 142 8 151 6 160H16Z'/%3E%3C/svg%3E");
+    --edge-r: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='160'%3E%3Cpath d='M0 0H10L7 7 12 14 8 22 13 30 9 37 11 45 6 52 12 60 9 69 14 77 8 85 11 93 7 101 13 109 10 118 12 126 7 134 11 142 8 151 10 160H0Z'/%3E%3C/svg%3E");
+
+    --pad-x: clamp(20px, 7vw, 84px);
+    color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+    overflow-x: clip;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #0b0a1f;
+    color: var(--ink);
+    font-family: var(--f-body);
+    line-height: 1.5;
+    overflow-x: clip;
+}
+
+body.is-locked {
+    overflow: hidden;
+}
+
+button,
+input,
+select {
+    font: inherit;
+    color: inherit;
+}
+
+svg {
+    display: block;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+/* =========================================================
+   BACKGROUND: night-carnival sky (matches the main site)
+
+   js/backdrop.js paints the sky into .bg__print. The
+   gradient here only shows for the moment before it is ready
+   (or with JavaScript off).
+========================================================= */
+.bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    background:
+        radial-gradient(60% 50% at 70% 40%, rgba(158, 32, 58, .35), transparent 70%),
+        radial-gradient(50% 45% at 25% 25%, rgba(92, 36, 124, .4), transparent 70%),
+        linear-gradient(180deg, #07081a, #100b26);
+}
+
+.bg__print {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity .8s ease;
+}
+
+.bg__print.is-ready {
+    opacity: 1;
+}
+
+/* gold sparkles that twinkle over the painted sky */
+.bg__sparkles {
+    position: absolute;
+    inset: 0;
+}
+
+.sparkle {
+    position: absolute;
+    filter: drop-shadow(0 0 6px rgba(255, 196, 90, .9)) drop-shadow(0 0 14px rgba(255, 170, 60, .5));
+    animation: twinkle var(--d) ease-in-out var(--delay) infinite;
+}
+
+@keyframes twinkle {
+
+    0%,
+    100% {
+        opacity: .35;
+        transform: scale(.45) rotate(0deg);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1) rotate(45deg);
+    }
+}
+
+.grain {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    pointer-events: none;
+    background: var(--grain);
+    opacity: .4;
+    mix-blend-mode: multiply;
+}
+
+/* =========================================================
+   TICKET BUTTON (Google sign-in, submit, download)
+========================================================= */
+.ticket-btn-wrap {
+    display: inline-block;
+    filter: drop-shadow(0 8px 10px rgba(60, 20, 8, .4));
+    transition: transform .35s var(--ease-back);
+    border-radius: 6px;
+}
+
+.ticket-btn-wrap:hover {
+    transform: translateY(-3px) rotate(-1deg);
+}
+
+.ticket-btn-wrap:active {
+    transform: translateY(1px) scale(.98);
+}
+
+.ticket-btn-wrap:has(:focus-visible) {
+    outline: 3px dashed var(--teal-deep);
+    outline-offset: 6px;
+}
+
+.ticket-btn {
+    --n: 14px;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    min-height: 74px;
+    padding: 20px 54px;
+    border: 0;
+    cursor: pointer;
+    color: var(--cream);
+    font-family: var(--f-head);
+    font-size: clamp(1.02rem, 2.6vw, 1.38rem);
+    letter-spacing: .05em;
+    background: var(--grain), linear-gradient(180deg, #e55a42, var(--brick) 45%, #a92e1c);
+    -webkit-mask:
+        radial-gradient(circle var(--n) at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat,
+        radial-gradient(circle var(--n) at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat;
+    mask:
+        radial-gradient(circle var(--n) at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat,
+        radial-gradient(circle var(--n) at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat;
+}
+
+.ticket-btn:focus {
+    outline: none;
+}
+
+/* dashed inner border */
+.ticket-btn::before {
+    content: "";
+    position: absolute;
+    inset: 7px;
+    border: 2px dashed var(--mustard);
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+.ticket-btn__bulbs {
+    position: absolute;
+    inset: 13px 26px;
+    pointer-events: none;
+    background:
+        radial-gradient(circle, #fff3c4 0 2px, rgba(255, 214, 110, .5) 3px, transparent 5px) 0 0 / 18px 8px repeat-x,
+        radial-gradient(circle, #fff3c4 0 2px, rgba(255, 214, 110, .5) 3px, transparent 5px) 0 100% / 18px 8px repeat-x;
+    opacity: .9;
+    animation: chase 1.1s steps(2) infinite;
+}
+
+.ticket-btn__label {
+    position: relative;
+}
+
+.ticket-btn--cream {
+    color: var(--brick-deep);
+    background: var(--grain), linear-gradient(180deg, var(--cream-hi), var(--cream) 50%, #e2cc9d);
+}
+
+.ticket-btn--cream::before {
+    border-color: var(--brick);
+}
+
+.ticket-btn--cream .ticket-btn__bulbs {
+    background:
+        radial-gradient(circle, var(--brick) 0 2px, transparent 3px) 0 0 / 18px 8px repeat-x,
+        radial-gradient(circle, var(--brick) 0 2px, transparent 3px) 0 100% / 18px 8px repeat-x;
+    opacity: .55;
+}
+
+.ticket-btn--big {
+    --n: 18px;
+    min-height: 92px;
+    padding: 24px 64px;
+    font-size: clamp(1.1rem, 3.2vw, 1.6rem);
+}
+
+.ticket-btn[disabled] {
+    cursor: progress;
+}
+
+.ticket-btn.is-busy .ticket-btn__bulbs {
+    animation-duration: .35s;
+}
+
+@keyframes chase {
+    to {
+        background-position: 9px 0, -9px 100%;
+    }
+}
+
+.g-badge {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--cream-hi);
+    box-shadow: 0 0 0 2px var(--mustard);
+    flex: none;
+}
+
+.g-badge svg {
+    width: 21px;
+    height: 21px;
+}
+
+.link-btn {
+    padding: 4px 2px;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font-family: var(--f-type);
+    font-size: .95rem;
+    color: var(--teal-deep);
+    text-decoration: underline dashed;
+    text-underline-offset: 4px;
+}
+
+.link-btn:hover {
+    color: var(--brick);
+}
+
+.link-btn:focus-visible {
+    outline: 2px dashed var(--brick);
+    outline-offset: 4px;
+}
+
+.link-btn--light {
+    color: var(--cream);
+}
+
+.link-btn--light:hover {
+    color: var(--mustard);
+}
+
+/* =========================================================
+   DESK PROPS: real-looking Admit One tickets beside the
+   scroll, tucked under its edges like props on a table
+========================================================= */
+.decor {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    display: none;
+}
+
+@media (min-width: 1280px) {
+    .decor {
+        display: block;
+    }
+}
+
+.decor__tickets,
+.ticket-strip {
+    position: absolute;
+    transition: transform .6s var(--ease-out);
+    filter: drop-shadow(0 2px 1px rgba(40, 15, 5, .35)) drop-shadow(0 14px 16px rgba(40, 15, 5, .35));
+}
+
+.decor__tickets {
+    left: -18px;
+    top: 110px;
+    width: 290px;
+    height: 240px;
+    transform: translate(calc(var(--mx, 0) * 16px), calc(var(--my, 0) * 12px));
+}
+
+/* a strip of tickets still joined at the perforations */
+.ticket-strip {
+    right: -30px;
+    top: 20vh;
+    display: flex;
+    flex-direction: column;
+    transform: translate(calc(var(--mx, 0) * -20px), calc(var(--my, 0) * -14px)) rotate(8deg);
+}
+
+.mini-ticket {
+    position: relative;
+    display: grid;
+    grid-template-columns: 22px 1fr 22px;
+    align-items: center;
+    width: 220px;
+    height: 124px;
+    padding: 10px 6px;
+    color: #c4402b;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, .4), transparent 30%, transparent 62%, rgba(90, 55, 20, .14) 85%, rgba(90, 55, 20, .26)),
+        radial-gradient(46px 30px at var(--sx, 78%) var(--sy, 72%), rgba(150, 95, 40, .2), transparent 70%),
+        linear-gradient(90deg, transparent 49.6%, rgba(90, 55, 20, .12) 50%, rgba(255, 255, 255, .3) 50.6%, transparent 51.2%),
+        var(--grain),
+        linear-gradient(160deg, #f7eed8, #ebdab3);
+    background-size: auto, auto, auto, 200px 200px, auto;
+    -webkit-mask:
+        radial-gradient(circle 4px at 50% 0, #0000 97%, #000) 0 0 / 12px 51% repeat-x,
+        radial-gradient(circle 4px at 50% 100%, #0000 97%, #000) 0 100% / 12px 51% repeat-x;
+    mask:
+        radial-gradient(circle 4px at 50% 0, #0000 97%, #000) 0 0 / 12px 51% repeat-x,
+        radial-gradient(circle 4px at 50% 100%, #0000 97%, #000) 0 100% / 12px 51% repeat-x;
+}
+
+.mini-ticket::before {
+    content: "";
+    position: absolute;
+    inset: 9px;
+    border: 2px solid currentColor;
+    border-radius: 4px;
+    opacity: .85;
+    filter: url(#ink);
+}
+
+.decor__tickets .mini-ticket {
+    position: absolute;
+}
+
+.mini-ticket--a {
+    left: 0;
+    top: 0;
+    transform: rotate(-9deg);
+}
+
+.mini-ticket--b {
+    left: 62px;
+    top: 84px;
+    transform: rotate(7deg);
+}
+
+.ticket-strip .mini-ticket + .mini-ticket {
+    margin-top: -1px;
+}
+
+/* the last one is half torn off */
+.ticket-strip .mini-ticket:last-child {
+    transform-origin: 0 0;
+    transform: rotate(5deg) translate(2px, 3px);
+}
+
+.mini-ticket__serial {
+    writing-mode: vertical-rl;
+    font-family: var(--f-type);
+    font-size: .62rem;
+    letter-spacing: .12em;
+    text-align: center;
+    filter: url(#ink);
+}
+
+.mini-ticket__serial:first-child {
+    transform: rotate(180deg);
+}
+
+.mini-ticket__body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    filter: url(#ink);
+}
+
+.mini-ticket__name {
+    font-family: var(--f-head);
+    font-size: 1.32rem;
+    line-height: 1;
+}
+
+.mini-ticket__tent {
+    width: 46px;
+    height: 42px;
+    opacity: .92;
+}
+
+.mini-ticket__admit {
+    font-family: var(--f-head);
+    font-size: .8rem;
+    letter-spacing: .08em;
+}
+
+/* =========================================================
+   STAGE + BUNTING
+========================================================= */
+.stage {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 104px 16px 120px;
+}
+
+.bunting {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    pointer-events: none;
+    filter: drop-shadow(0 5px 3px rgba(40, 15, 5, .35));
+}
+
+.bunting__rope {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 80px;
+}
+
+.bunting__rope path {
+    fill: none;
+    stroke: #c99a3c;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+}
+
+.pennant {
+    position: absolute;
+    width: 30px;
+    height: 38px;
+    margin-left: -15px;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: 50% 0;
+    animation: sway 3.2s ease-in-out var(--sw) infinite;
+}
+
+/* cloth: light catching one side, a soft fold, woven grain */
+.pennant::before,
+.pennant::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+.pennant::before {
+    background:
+        linear-gradient(100deg, rgba(255, 255, 255, .28), transparent 38%, rgba(0, 0, 0, .06) 52%, transparent 60%, rgba(0, 0, 0, .26)),
+        linear-gradient(180deg, rgba(0, 0, 0, .22) 0 3px, transparent 6px);
+}
+
+.pennant::after {
+    background:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, .05) 0 1px, transparent 1px 3px),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, .05) 0 1px, transparent 1px 3px),
+        var(--grain);
+}
+
+@keyframes sway {
+
+    0%,
+    100% {
+        transform: rotate(-5deg);
+    }
+
+    50% {
+        transform: rotate(5deg);
+    }
+}
+
+/* =========================================================
+   SCROLL: two rolls, parchment between
+========================================================= */
+.scroll {
+    position: relative;
+    width: min(920px, 100%);
+    opacity: 0;
+    transform: translateY(70px) scale(.96);
+    transition: opacity .6s ease, transform .9s var(--ease-out);
+}
+
+.scroll.is-in {
+    opacity: 1;
+    transform: none;
+}
+
+.scroll__shadow {
+    position: absolute;
+    top: 30px;
+    bottom: 30px;
+    left: 10px;
+    right: 10px;
+    box-shadow: 0 26px 40px rgba(40, 15, 5, .45), 0 4px 10px rgba(40, 15, 5, .3);
+    pointer-events: none;
+}
+
+.scroll__roll {
+    position: relative;
+    z-index: 3;
+    height: 54px;
+    margin: 0 -22px;
+    border-radius: 27px;
+    background:
+        repeating-linear-gradient(180deg, transparent 0 7px, rgba(90, 60, 20, .1) 7px 8px),
+        var(--grain),
+        linear-gradient(180deg, #6e4f2a 0%, #b38d57 12%, #ead5aa 36%, #fbf0d6 48%, #e2c690 70%, #a47e4a 90%, #6a4b27 100%);
+    box-shadow: 0 10px 16px rgba(40, 15, 5, .45);
+}
+
+/* the spiral ends of each roll */
+.scroll__roll::before,
+.scroll__roll::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 30px;
+    height: 54px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 50%, #7a5630 0 3px, #dcc08c 4px 7px, #9a7543 8px 10px, #ead39f 11px 14px, #a07a46 15px 17px, #d7b67d 18px);
+    box-shadow: inset 0 0 6px rgba(60, 35, 10, .5);
+}
+
+.scroll__roll::before {
+    left: -6px;
+}
+
+.scroll__roll::after {
+    right: -6px;
+}
+
+.scroll__roll.is-rolling {
+    animation: roll .5s linear infinite;
+}
+
+@keyframes roll {
+    to {
+        background-position: 0 16px, 0 0, 0 0;
+    }
+}
+
+.scroll__paper {
+    position: relative;
+    z-index: 2;
+    height: 0;
+    margin: -27px 6px;
+    overflow: clip;
+    background:
+        radial-gradient(120% 600px at 50% 0%, rgba(255, 250, 235, .45), transparent 60%),
+        radial-gradient(420px 300px at 88% 18%, rgba(150, 95, 40, .12), transparent 70%),
+        radial-gradient(360px 280px at 10% 46%, rgba(150, 95, 40, .1), transparent 70%),
+        radial-gradient(460px 320px at 80% 74%, rgba(150, 95, 40, .1), transparent 70%),
+        radial-gradient(120% 500px at 50% 100%, rgba(150, 95, 40, .14), transparent 70%),
+        var(--grain),
+        linear-gradient(180deg, #f3e4c3, #ecd6ad 50%, #f0dfbc);
+    background-size: auto, auto, auto, auto, auto, 200px 200px, auto;
+    box-shadow:
+        inset 22px 0 30px -14px rgba(120, 70, 25, .45),
+        inset -22px 0 30px -14px rgba(120, 70, 25, .45);
+    -webkit-mask:
+        var(--edge-l) left top / 16px 160px repeat-y,
+        var(--edge-r) right 70px / 16px 160px repeat-y,
+        linear-gradient(#000, #000) center / calc(100% - 30px) 100% no-repeat;
+    mask:
+        var(--edge-l) left top / 16px 160px repeat-y,
+        var(--edge-r) right 70px / 16px 160px repeat-y,
+        linear-gradient(#000, #000) center / calc(100% - 30px) 100% no-repeat;
+}
+
+.scroll__inner {
+    padding: 78px var(--pad-x) 88px;
+}
+
+/* =========================================================
+   HEADER + SIGN IN
+========================================================= */
+.reg-head {
+    text-align: center;
+}
+
+.reg-head__kicker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 0;
+    font-family: var(--f-type);
+    font-size: .82rem;
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    color: var(--teal-deep);
+}
+
+.reg-head__kicker::before,
+.reg-head__kicker::after {
+    content: "\2605";
+    color: var(--brick);
+    letter-spacing: 0;
+}
+
+.reg-title {
+    margin: 4px 0 6px;
+    font-family: var(--f-head);
+    font-weight: 400;
+    font-size: clamp(2.7rem, 10vw, 6rem);
+    line-height: 1.05;
+    color: var(--brick);
+    text-shadow: 3px 3px 0 var(--mustard), 6px 6px 0 rgba(60, 20, 10, .22);
+}
+
+.reg-title .ch {
+    display: inline-block;
+}
+
+.scroll.is-in .reg-title .ch {
+    animation: drop .75s var(--ease-back) calc(var(--i) * 55ms + 700ms) both;
+}
+
+@keyframes drop {
+    from {
+        opacity: 0;
+        transform: translateY(-60px) rotate(-22deg);
+    }
+}
+
+.reg-head__lede {
+    max-width: 38ch;
+    margin: 0 auto;
+    font-style: italic;
+    font-size: clamp(1rem, 2.2vw, 1.18rem);
+    color: var(--ink-soft);
+}
+
+.signin {
+    margin-top: 34px;
+    text-align: center;
+}
+
+.signin__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.signin__done {
+    display: none;
+    margin: 0;
+    font-family: var(--f-type);
+    color: var(--teal-deep);
+    font-size: 1rem;
+}
+
+.signin.is-done .signin__actions {
+    display: none;
+}
+
+.signin.is-done .signin__done {
+    display: block;
+    animation: fade-up .5s var(--ease-out) both;
+}
+
+@keyframes fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+}
+
+/* =========================================================
+   TORN-PAPER DIVIDERS (edges cut in JS)
+========================================================= */
+.tear-wrap {
+    margin: 64px calc(var(--pad-x) * -1 + 6px) 34px;
+    filter: drop-shadow(0 4px 3px rgba(60, 25, 10, .35));
+}
+
+.act:first-child .tear-wrap {
+    margin-top: 48px;
+}
+
+.tear {
+    margin: 0;
+    padding: 20px 24px 18px;
+    text-align: center;
+    font-family: var(--f-head);
+    font-weight: 400;
+    font-size: clamp(1.25rem, 3.4vw, 1.75rem);
+    letter-spacing: .06em;
+    line-height: 1.1;
+    color: var(--cream);
+    background: var(--grain), var(--teal);
+    transform: rotate(-1deg);
+}
+
+.tear small {
+    display: block;
+    margin-bottom: 4px;
+    font-family: var(--f-type);
+    font-size: .72rem;
+    letter-spacing: .32em;
+    text-transform: uppercase;
+    opacity: .85;
+}
+
+.tear--red {
+    background: var(--grain), var(--brick);
+    transform: rotate(.8deg);
+}
+
+.tear--mustard {
+    color: var(--ink);
+    background: var(--grain), var(--mustard);
+    transform: rotate(-.6deg);
+}
+
+/* =========================================================
+   SCROLL REVEALS
+========================================================= */
+.rv {
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity .7s ease, transform .8s var(--ease-out);
+    transition-delay: var(--rv-delay, 0ms);
+}
+
+.rv.is-in {
+    opacity: 1;
+    transform: none;
+}
+
+.tear-wrap.rv {
+    transform: translateX(-40px) rotate(-3deg);
+}
+
+.tear-wrap.rv.is-in {
+    transform: none;
+}
+
+/* =========================================================
+   FIELDS
+========================================================= */
+.fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 36px;
+}
+
+.field {
+    position: relative;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.field--wide,
+fieldset.field {
+    grid-column: 1 / -1;
+}
+
+.field__label {
+    display: block;
+    margin-bottom: 4px;
+    padding: 0;
+    font-family: var(--f-type);
+    font-size: .78rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--teal-deep);
+}
+
+.field__control {
+    position: relative;
+}
+
+.field__input {
+    display: block;
+    width: 100%;
+    padding: 8px 2px;
+    border: 0;
+    border-bottom: 2px dashed rgba(70, 40, 20, .45);
+    border-radius: 0;
+    background: transparent;
+    font-family: var(--f-type);
+    font-size: 1.12rem;
+    color: var(--ink);
+    outline: none;
+}
+
+.field__input::placeholder {
+    color: rgba(70, 40, 20, .38);
+}
+
+.field__select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 28px;
+    cursor: pointer;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='10'%3E%3Cpath d='M1 1l6 7 6-7' fill='none' stroke='%23D8432E' stroke-width='2'/%3E%3C/svg%3E") right 4px center / 14px 10px no-repeat;
+}
+
+.field__select:invalid,
+.field__select option[value=""] {
+    color: rgba(70, 40, 20, .5);
+}
+
+/* ink underline drawn on focus */
+.field__line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--brick);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .45s var(--ease-out);
+}
+
+.field__control:focus-within .field__line {
+    transform: scaleX(1);
+}
+
+.field__error,
+.field__hint {
+    margin: 6px 0 0;
+    font-family: var(--f-type);
+    font-size: .84rem;
+}
+
+.field__error {
+    min-height: 1.25em;
+    color: var(--brick-deep);
+}
+
+.field__error--center {
+    text-align: center;
+}
+
+.field__hint {
+    color: var(--ink-soft);
+}
+
+.field.is-error .field__input {
+    border-bottom-color: var(--brick);
+}
+
+.is-shaking {
+    animation: shake .42s ease;
+}
+
+@keyframes shake {
+
+    20%,
+    60% {
+        translate: -6px 0;
+    }
+
+    40%,
+    80% {
+        translate: 6px 0;
+    }
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.chip {
+    position: relative;
+    cursor: pointer;
+}
+
+.chip input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.chip span {
+    display: inline-block;
+    padding: 7px 18px;
+    border: 2px dashed rgba(42, 26, 16, .55);
+    border-radius: 4px;
+    font-family: var(--f-type);
+    font-size: 1rem;
+    transition: background .2s, color .2s, transform .3s var(--ease-back), border-color .2s;
+}
+
+.chip:hover span {
+    transform: rotate(-2deg);
+}
+
+.chip input:checked + span {
+    color: var(--cream);
+    background: var(--teal);
+    border-style: solid;
+    border-color: var(--teal-deep);
+    transform: rotate(-2deg) scale(1.04);
+}
+
+.chip input:focus-visible + span {
+    outline: 2px dashed var(--brick);
+    outline-offset: 3px;
+}
+
+.team-field {
+    max-width: 520px;
+    margin: 34px auto 0;
+}
+
+/* =========================================================
+   BOOTH TABS
+========================================================= */
+.booth {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px 20px;
+    margin-bottom: 26px;
+}
+
+.booth-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.booth-tab {
+    padding: 7px 15px;
+    border: 2px solid var(--ink);
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: var(--f-head);
+    font-size: .92rem;
+    letter-spacing: .04em;
+    background: var(--cream-hi);
+    box-shadow: 3px 3px 0 var(--ink);
+    transform: rotate(var(--r));
+    transition: transform .3s var(--ease-back), box-shadow .2s, background .2s, color .2s;
+}
+
+.booth-tab:hover {
+    transform: rotate(0) translateY(-2px);
+}
+
+.booth-tab[aria-pressed="true"] {
+    color: var(--cream);
+    background: var(--brick);
+    box-shadow: 1px 1px 0 var(--ink);
+    transform: rotate(0) translate(2px, 2px);
+}
+
+.booth-tab:focus-visible {
+    outline: 2px dashed var(--teal-deep);
+    outline-offset: 4px;
+}
+
+.booth__count {
+    margin: 0;
+    font-family: var(--f-type);
+    color: var(--ink-soft);
+}
+
+.booth__count b {
+    display: inline-grid;
+    place-items: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 6px;
+    margin-right: 4px;
+    border-radius: 50%;
+    font-family: var(--f-title);
+    font-weight: 400;
+    color: var(--cream);
+    background: var(--teal);
+}
+
+.booth__count b.is-bump {
+    animation: bump .4s var(--ease-back);
+}
+
+@keyframes bump {
+    40% {
+        transform: scale(1.35);
+    }
+}
+
+/* =========================================================
+   EVENT TICKETS
+========================================================= */
+.acts {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 34px;
+    align-items: start;
+}
+
+.tickets {
+    display: grid;
+    gap: 18px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tk-item {
+    position: relative;
+}
+
+.eticket {
+    --n: 11px;
+    --stub: 84px;
+    display: flex;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    color: var(--ink);
+    filter: drop-shadow(0 6px 5px rgba(60, 25, 10, .28));
+    transform: rotate(var(--tilt));
+    transition: transform .4s var(--ease-back);
+}
+
+.eticket:hover {
+    transform: rotate(0) translateY(-3px);
+}
+
+.eticket:focus {
+    outline: none;
+}
+
+.tk-item:has(.eticket:focus-visible) {
+    outline: 3px dashed var(--teal-deep);
+    outline-offset: 6px;
+    border-radius: 4px;
+}
+
+.eticket__main {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    padding: 16px 20px 14px 26px;
+    background: var(--grain), linear-gradient(160deg, var(--cream-hi), #efdfbd);
+    box-shadow: inset 0 0 0 6px transparent, inset 0 0 0 7.5px var(--tone);
+    -webkit-mask:
+        radial-gradient(circle var(--n) at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat,
+        radial-gradient(circle var(--n) at 100% 0, #0000 97%, #000) right top / 51% 51% no-repeat,
+        radial-gradient(circle var(--n) at 100% 100%, #0000 97%, #000) right bottom / 51% 51% no-repeat;
+    mask:
+        radial-gradient(circle var(--n) at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat,
+        radial-gradient(circle var(--n) at 100% 0, #0000 97%, #000) right top / 51% 51% no-repeat,
+        radial-gradient(circle var(--n) at 100% 100%, #0000 97%, #000) right bottom / 51% 51% no-repeat;
+}
+
+.eticket__top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: var(--f-type);
+    font-size: .72rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--tone);
+}
+
+.eticket__name {
+    display: block;
+    margin: 6px 0 8px;
+    font-family: var(--f-title);
+    font-size: clamp(1.3rem, 3vw, 1.65rem);
+    line-height: 1.05;
+}
+
+.eticket__admit {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: 64px;
+    font-family: var(--f-head);
+    font-size: .9rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--tone);
+}
+
+.eticket__admit::before,
+.eticket__admit::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: currentColor;
+    opacity: .6;
+}
+
+.eticket__stub {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: var(--stub);
+    color: var(--cream);
+    border-left: 2px dashed rgba(241, 227, 198, .75);
+    background: var(--grain), var(--tone);
+    transform-origin: 0 100%;
+    transition: transform .55s var(--ease-back);
+    -webkit-mask:
+        radial-gradient(circle var(--n) at 0 0, #0000 97%, #000) left top / 51% 51% no-repeat,
+        radial-gradient(circle var(--n) at 0 100%, #0000 97%, #000) left bottom / 51% 51% no-repeat,
+        radial-gradient(circle var(--n) at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat;
+    mask:
+        radial-gradient(circle var(--n) at 0 0, #0000 97%, #000) left top / 51% 51% no-repeat,
+        radial-gradient(circle var(--n) at 0 100%, #0000 97%, #000) left bottom / 51% 51% no-repeat,
+        radial-gradient(circle var(--n) at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat;
+}
+
+.eticket__serial {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--f-type);
+    font-size: .78rem;
+    letter-spacing: .2em;
+    white-space: nowrap;
+}
+
+/* selected: the stub tears away and the ticket is stamped */
+.eticket[aria-pressed="true"] .eticket__stub {
+    transform: translate(10px, 5px) rotate(9deg);
+}
+
+.eticket__more {
+    position: absolute;
+    right: 98px;
+    bottom: 9px;
+    padding: 2px 4px;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font-family: var(--f-type);
+    font-size: .8rem;
+    color: var(--ink-soft);
+    text-decoration: underline dashed;
+    text-underline-offset: 3px;
+}
+
+.eticket__more:hover {
+    color: var(--brick);
+}
+
+.eticket__more:focus-visible {
+    outline: 2px dashed var(--brick);
+    outline-offset: 2px;
+}
+
+.eticket[aria-disabled="true"] {
+    cursor: not-allowed;
+}
+
+.eticket[aria-disabled="true"] .eticket__main > :not(.stamp),
+.eticket[aria-disabled="true"] .eticket__stub {
+    opacity: .55;
+}
+
+/* =========================================================
+   RUBBER STAMPS
+========================================================= */
+.stamp {
+    position: absolute;
+    left: 58%;
+    top: 50%;
+    padding: 3px 12px;
+    font-family: var(--f-head);
+    font-size: 1.25rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--brick);
+    border: 3px solid currentColor;
+    border-radius: 6px;
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+    filter: url(#ink);
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-14deg);
+}
+
+.eticket[aria-pressed="true"] .stamp--ok {
+    animation: stamp-in .5s cubic-bezier(.2, .9, .3, 1.2) both;
+}
+
+.stamp--full {
+    color: var(--brick-deep);
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-10deg);
+}
+
+@keyframes stamp-in {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(-30deg) scale(2.6);
+    }
+
+    55% {
+        opacity: .95;
+        transform: translate(-50%, -50%) rotate(-12deg) scale(.9);
+    }
+
+    100% {
+        opacity: .9;
+        transform: translate(-50%, -50%) rotate(-14deg) scale(1);
+    }
+}
+
+.stamp-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+}
+
+.big-stamp {
+    padding: .08em .45em;
+    font-family: var(--f-head);
+    font-size: clamp(1.9rem, 7.5vw, 5.4rem);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--brick);
+    border: 7px solid currentColor;
+    border-radius: 14px;
+    outline: 3px solid currentColor;
+    outline-offset: 7px;
+    filter: url(#ink);
+    transform: rotate(-12deg);
+}
+
+.seal-stamp {
+    position: absolute;
+    top: 6px;
+    right: 0;
+    padding: 2px 12px;
+    font-family: var(--f-head);
+    font-size: 1.3rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--brick);
+    border: 3px solid currentColor;
+    border-radius: 6px;
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+    filter: url(#ink);
+    transform: rotate(12deg);
+    opacity: .9;
+    animation: stamp-seal .5s cubic-bezier(.2, .9, .3, 1.2) both;
+}
+
+@keyframes stamp-seal {
+    from {
+        opacity: 0;
+        transform: rotate(30deg) scale(2.4);
+    }
+}
+
+.scroll.is-thud {
+    animation: thud .45s ease;
+}
+
+@keyframes thud {
+    20% {
+        translate: 0 6px;
+    }
+
+    45% {
+        translate: -3px -2px;
+    }
+
+    70% {
+        translate: 2px 1px;
+    }
+}
+
+/* =========================================================
+   WANTED / GRAND OPENING POSTER
+========================================================= */
+.wanted {
+    position: sticky;
+    top: 24px;
+    transform: rotate(1.6deg);
+}
+
+.wanted__card {
+    position: relative;
+    padding: 30px 22px 24px;
+    text-align: center;
+    color: var(--ink);
+    background:
+        var(--blotch),
+        var(--grain),
+        linear-gradient(170deg, #f4dc9c, #e9c77e 60%, #ddb566);
+    background-size: 600px 600px, 200px 200px, auto;
+    box-shadow:
+        inset 0 0 0 8px transparent,
+        inset 0 0 0 9.5px rgba(42, 26, 16, .55),
+        inset 0 0 40px rgba(120, 70, 20, .35),
+        0 14px 22px rgba(60, 25, 10, .35);
+    transform-origin: 50% 0;
+}
+
+/* nail heads */
+.wanted__card::before,
+.wanted__card::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f0a08f, var(--brick-deep) 70%);
+    box-shadow: 1px 2px 2px rgba(0, 0, 0, .4);
+}
+
+.wanted__card::before {
+    left: 14px;
+}
+
+.wanted__card::after {
+    right: 14px;
+}
+
+.wanted__kicker {
+    margin: 0;
+    font-family: var(--f-type);
+    font-size: .72rem;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--brick-deep);
+}
+
+.wanted__head {
+    margin: 2px 0 0;
+    font-family: var(--f-head);
+    font-weight: 400;
+    font-size: clamp(2.6rem, 6vw, 3.4rem);
+    line-height: 1;
+    letter-spacing: .06em;
+    color: var(--brick);
+    text-shadow: 2px 2px 0 rgba(42, 26, 16, .3);
+}
+
+.wanted__head--grand {
+    font-size: clamp(2.1rem, 5vw, 2.7rem);
+}
+
+.wanted__sub {
+    margin: 8px 0 0;
+    font-style: italic;
+    color: var(--ink-soft);
+}
+
+.wanted__event {
+    margin: 2px 0 0;
+    font-family: var(--f-title);
+    font-size: clamp(1.6rem, 4vw, 2.1rem);
+    line-height: 1.1;
+}
+
+.wanted__meta {
+    margin: 4px 0 0;
+    font-family: var(--f-type);
+    font-size: .82rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--teal-deep);
+}
+
+.wanted__facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 16px 0 0;
+    padding: 12px 0;
+    border-top: 2px solid rgba(42, 26, 16, .5);
+    border-bottom: 2px solid rgba(42, 26, 16, .5);
+}
+
+.wanted__facts dt {
+    font-family: var(--f-type);
+    font-size: .64rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+
+.wanted__facts dd {
+    margin: 2px 0 0;
+    font-weight: 700;
+    font-size: .95rem;
+    line-height: 1.2;
+}
+
+.wanted__rules-title {
+    margin: 16px 0 6px;
+    font-family: var(--f-head);
+    font-weight: 400;
+    font-size: 1.05rem;
+    letter-spacing: .1em;
+    color: var(--brick-deep);
+}
+
+.wanted__rules {
+    margin: 0;
+    padding-left: 1.3em;
+    text-align: left;
+    font-size: .95rem;
+    line-height: 1.45;
+}
+
+.wanted__rules li + li {
+    margin-top: 4px;
+}
+
+.wanted__hint {
+    margin: 14px 0 0;
+    font-style: italic;
+    color: var(--ink-soft);
+}
+
+.wanted__pick {
+    margin-top: 16px;
+    padding: 8px 16px;
+    border: 2px solid var(--ink);
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: var(--f-head);
+    font-size: .9rem;
+    color: var(--cream);
+    background: var(--brick);
+    box-shadow: 3px 3px 0 var(--ink);
+    transition: transform .2s, box-shadow .2s;
+}
+
+.wanted__pick:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 var(--ink);
+}
+
+.wanted__pick[aria-pressed="true"] {
+    background: var(--teal);
+}
+
+.wanted__pick:focus-visible {
+    outline: 2px dashed var(--teal-deep);
+    outline-offset: 4px;
+}
+
+.wanted__card .stamp--full {
+    left: 50%;
+    top: 46%;
+    font-size: 1.8rem;
+}
+
+/* =========================================================
+   ACT III SUMMARY
+========================================================= */
+.seal {
+    position: relative;
+    text-align: center;
+}
+
+.seal__title {
+    margin: 0 0 14px;
+    font-family: var(--f-head);
+    font-weight: 400;
+    font-size: 1.4rem;
+    color: var(--teal-deep);
+}
+
+.picked {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.picked__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px 5px 14px;
+    font-family: var(--f-type);
+    color: var(--cream);
+    background: var(--grain), var(--tone);
+    border-radius: 3px;
+    box-shadow: 2px 2px 0 rgba(42, 26, 16, .4);
+    animation: chip-in .4s var(--ease-back) both;
+}
+
+.picked__chip:nth-child(odd) {
+    transform: rotate(-1.5deg);
+}
+
+.picked__chip:nth-child(even) {
+    transform: rotate(1.2deg);
+}
+
+@keyframes chip-in {
+    from {
+        opacity: 0;
+        scale: .6;
+    }
+}
+
+.picked__x {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: inherit;
+    background: rgba(0, 0, 0, .18);
+}
+
+.picked__x:hover {
+    background: rgba(0, 0, 0, .35);
+}
+
+.picked__x:focus-visible {
+    outline: 2px dashed var(--cream);
+    outline-offset: 2px;
+}
+
+.picked__empty {
+    margin: 0;
+    font-style: italic;
+    color: var(--ink-soft);
+}
+
+.ticket-btn-wrap--big {
+    margin-top: 26px;
+}
+
+.form-status {
+    min-height: 1.4em;
+    margin: 16px 0 0;
+    font-family: var(--f-type);
+    color: var(--ink-soft);
+}
+
+/* =========================================================
+   CONFIRMATION: ticket printed out of a booth slot
+========================================================= */
+.confirm {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: grid;
+    place-items: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+    background:
+        repeating-conic-gradient(from 0deg at 50% 45%, rgba(224, 169, 59, .07) 0 6deg, transparent 6deg 12deg),
+        radial-gradient(circle at 50% 42%, rgba(60, 22, 10, .78), rgba(18, 7, 3, .94) 75%);
+}
+
+.confirm__panel {
+    position: relative;
+    width: min(780px, 100%);
+    text-align: center;
+}
+
+.confirm__close {
+    position: absolute;
+    top: -6px;
+    right: 0;
+    width: 44px;
+    height: 44px;
+    border: 2px solid var(--cream);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: var(--cream);
+    background: transparent;
+}
+
+.confirm__close:hover {
+    color: var(--ink);
+    background: var(--cream);
+}
+
+.confirm__close:focus-visible {
+    outline: 2px dashed var(--mustard);
+    outline-offset: 4px;
+}
+
+.confirm__title {
+    margin: 0 48px;
+    font-family: var(--f-head);
+    font-weight: 400;
+    font-size: clamp(1.8rem, 5.5vw, 3rem);
+    line-height: 1.1;
+    color: var(--mustard);
+    text-shadow: 3px 3px 0 var(--brick-deep);
+}
+
+.confirm__sub {
+    margin: 8px 0 22px;
+    font-family: var(--f-type);
+    color: var(--cream);
+    opacity: .85;
+}
+
+.printer {
+    position: relative;
+    padding-top: 10px;
+}
+
+.printer__slot {
+    position: relative;
+    z-index: 2;
+    height: 20px;
+    margin: 0 -10px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #120703, #3a1a0e 60%, #6b3a20);
+    box-shadow: inset 0 3px 6px rgba(0, 0, 0, .8), 0 2px 0 rgba(224, 169, 59, .5);
+}
+
+.printer__out {
+    margin-top: -10px;
+    padding: 0 10px 34px;
+    overflow: hidden;
+}
+
+.printer__paper {
+    filter: drop-shadow(0 16px 18px rgba(0, 0, 0, .55));
+}
+
+.printer__paper canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.confirm__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 14px 28px;
+}
+
+.noscript {
+    position: fixed;
+    inset: auto 16px 16px;
+    z-index: 200;
+    padding: 14px;
+    text-align: center;
+    font-family: var(--f-type);
+    color: var(--cream);
+    background: var(--brick-deep);
+}
+
+/* =========================================================
+   SMALL SCREENS
+========================================================= */
+@media (max-width: 860px) {
+    .acts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .wanted {
+        position: relative;
+        top: 0;
+        max-width: 460px;
+        width: 100%;
+        margin: 8px auto 0;
+    }
+}
+
+@media (max-width: 640px) {
+    .stage {
+        padding: 92px 12px 90px;
+    }
+
+    .scroll__roll {
+        height: 44px;
+        margin: 0 -6px;
+    }
+
+    .scroll__roll::before,
+    .scroll__roll::after {
+        width: 24px;
+        height: 44px;
+    }
+
+    .scroll__paper {
+        margin: -22px 4px;
+    }
+
+    .scroll__inner {
+        padding: 60px 26px 70px;
+    }
+
+    .fields {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ticket-btn {
+        padding: 18px 40px;
+    }
+
+    .ticket-btn--big {
+        padding: 22px 42px;
+    }
+
+    .eticket {
+        --stub: 62px;
+    }
+
+    .eticket__main {
+        padding: 14px 16px 12px 22px;
+    }
+
+    .eticket__more {
+        right: 74px;
+    }
+
+    .eticket__admit {
+        margin-right: 56px;
+        font-size: .78rem;
+    }
+
+    .stamp {
+        font-size: 1rem;
+    }
+
+    .booth {
+        justify-content: center;
+    }
+
+    .booth-tabs {
+        justify-content: center;
+    }
+
+}
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        transition-delay: 0ms !important;
+    }
+
+    .rv,
+    .tear-wrap.rv {
+        opacity: 1;
+        transform: none;
+    }
+}
